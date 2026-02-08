@@ -69,11 +69,10 @@ Add to `~/.claude/claude_desktop_config.json`:
 }
 ```
 
-### Get your API token
+### Authentication
 
-Umami dashboard: **Settings > API Keys**
-
-Or use username/password auth — the server obtains a token automatically.
+- **Umami Cloud**: Create an API key in **Settings > API Keys**
+- **Self-hosted**: Use username/password — the server obtains a token automatically via `/api/auth/login`
 
 ## Available Tools
 
