@@ -56,13 +56,13 @@ export function registerResources(server: McpServer, client: UmamiClient) {
 
 	server.resource("umami://reports", "List of all saved reports (summary)", async () => {
 		try {
-			const reports = await client.listReports();
+			const res = await client.listReports();
 			return {
 				contents: [
 					{
 						uri: "umami://reports",
 						mimeType: "application/json",
-						text: JSON.stringify(reports.map(toReportSummary), null, 2),
+						text: JSON.stringify(res.data.map(toReportSummary), null, 2),
 					},
 				],
 			};

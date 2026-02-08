@@ -91,6 +91,8 @@ export class UmamiClient {
 					Authorization: `Bearer ${this.token}`,
 					"Content-Type": "application/json",
 					Accept: "application/json",
+					"User-Agent":
+						"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 				},
 				body: body ? JSON.stringify(body) : undefined,
 				signal: controller.signal,
@@ -472,15 +474,35 @@ export class UmamiClient {
 		title?: string;
 		tag?: string;
 		data?: Record<string, unknown>;
-	}): Promise<{ sessionId: string; visitId: string }> {
-		return this.request("POST", "/api/send", {
-			type: "event",
-			payload: {
-				...data,
-				language: "en-US",
-				screen: "1920x1080",
+	}): Promise<{ sessionId?: string; visitId?: string }> {
+		const url = `${this.baseUrl}/api/send`;
+		const response = await fetch(url, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"User-Agent":
+					"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 			},
+			body: JSON.stringify({
+				type: "event",
+				payload: {
+					...data,
+					language: "en-US",
+					screen: "1920x1080",
+				},
+			}),
 		});
+		if (!response.ok) {
+			const text = await response.text();
+			throw new UmamiApiError(`Send event failed: ${response.statusText}`, response.status, text);
+		}
+		const text = await response.text();
+		if (!text) return {};
+		try {
+			return JSON.parse(text);
+		} catch {
+			return {};
+		}
 	}
 
 	// --- Users (admin only, self-hosted) ---
@@ -540,7 +562,8 @@ export class UmamiClient {
 	}
 
 	async createTeam(name: string): Promise<Team> {
-		return this.request<Team>("POST", "/api/teams", { name });
+		const result = await this.request<Team | [Team, unknown]>("POST", "/api/teams", { name });
+		return Array.isArray(result) ? result[0] : result;
 	}
 
 	async updateTeam(teamId: string, data: { name?: string; accessCode?: string }): Promise<Team> {
@@ -595,8 +618,16 @@ export class UmamiClient {
 
 	// --- Reports ---
 
-	async listReports(): Promise<Report[]> {
-		return this.request<Report[]>("GET", "/api/reports");
+	async listReports(opts?: {
+		websiteId?: string;
+		page?: number;
+		pageSize?: number;
+	}): Promise<PaginatedResponse<Report>> {
+		return this.request("GET", "/api/reports", undefined, {
+			websiteId: opts?.websiteId,
+			page: opts?.page,
+			pageSize: opts?.pageSize,
+		});
 	}
 
 	async getReport(reportId: string): Promise<Report> {
@@ -615,7 +646,13 @@ export class UmamiClient {
 
 	async updateReport(
 		reportId: string,
-		data: { name?: string; description?: string; parameters?: Record<string, unknown> },
+		data: {
+			websiteId?: string;
+			type?: string;
+			name?: string;
+			description?: string;
+			parameters?: Record<string, unknown>;
+		},
 	): Promise<Report> {
 		return this.request<Report>("POST", `/api/reports/${reportId}`, data);
 	}
@@ -624,29 +661,42 @@ export class UmamiClient {
 		return this.request("DELETE", `/api/reports/${reportId}`);
 	}
 
-	async runFunnelReport(websiteId: string, parameters: Record<string, unknown>): Promise<unknown> {
-		return this.request("POST", "/api/reports/funnel", { websiteId, type: "funnel", parameters });
+	async runFunnelReport(
+		websiteId: string,
+		parameters: Record<string, unknown>,
+		filters?: Record<string, unknown>,
+	): Promise<unknown> {
+		return this.request("POST", "/api/reports/funnel", {
+			websiteId,
+			type: "funnel",
+			parameters,
+			filters: filters ?? {},
+		});
 	}
 
 	async runRetentionReport(
 		websiteId: string,
 		parameters: Record<string, unknown>,
+		filters?: Record<string, unknown>,
 	): Promise<unknown> {
 		return this.request("POST", "/api/reports/retention", {
 			websiteId,
 			type: "retention",
 			parameters,
+			filters: filters ?? {},
 		});
 	}
 
 	async runBreakdownReport(
 		websiteId: string,
 		parameters: Record<string, unknown>,
+		filters?: Record<string, unknown>,
 	): Promise<unknown> {
 		return this.request("POST", "/api/reports/breakdown", {
 			websiteId,
 			type: "breakdown",
 			parameters,
+			filters: filters ?? {},
 		});
 	}
 

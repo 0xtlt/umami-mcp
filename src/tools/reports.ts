@@ -14,8 +14,8 @@ export function registerReportTools(server: McpServer, client: UmamiClient, conf
 		{},
 		async () => {
 			return wrap(async () => {
-				const reports = await client.listReports();
-				return reports.map(toReportSummary);
+				const res = await client.listReports();
+				return res.data.map(toReportSummary);
 			});
 		},
 	);
@@ -84,7 +84,14 @@ export function registerReportTools(server: McpServer, client: UmamiClient, conf
 				if (!isToolAllowed("umami_update_report", config))
 					return readonlyError("umami_update_report");
 				return wrap(async () => {
-					await client.updateReport(reportId, { name, description, parameters });
+					const current = await client.getReport(reportId);
+					await client.updateReport(reportId, {
+						websiteId: current.websiteId,
+						type: current.type,
+						name: name ?? current.name,
+						description: description ?? current.description,
+						parameters: parameters ?? current.parameters,
+					});
 					return `Report ${reportId} updated`;
 				});
 			},

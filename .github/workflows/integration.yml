@@ -1,0 +1,31 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - name: Start Umami + PostgreSQL
+        run: bun run test:integration:setup
+
+      - name: Run integration tests
+        run: bun run test:integration:run
+
+      - name: Teardown
+        if: always()
+        run: bun run test:integration:teardown
