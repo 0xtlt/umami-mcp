@@ -1,6 +1,7 @@
 {
 	"name": "umami-mcp",
 	"version": "1.0.0",
+	"packageManager": "bun@1.4.3",
 	"description": "MCP server for Umami Analytics. Query website stats, manage websites, teams, users, and reports from any MCP-compatible client.",
 	"type": "module",
 	"main": "dist/index.js",
